@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评测集管理 UCD 优化 Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f6fa;
+    color: #333;
+    padding: 24px;
+    overflow: auto;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; color: #2c3e50; }
+  h2 { font-size: 16px; margin-bottom: 8px; color: #4a4a4a; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.6; }
+
+  /* 对比容器 */
+  .layout-switch {
+    display: flex; gap: 10px; margin-bottom: 16px; align-items: center;
+  }
+  .switch-btn {
+    padding: 8px 16px; border: 1px solid #ddd; background: #fff;
+    border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all .2s;
+  }
+  .switch-btn.active { background: #6b5ce7; color: #fff; border-color: #6b5ce7; }
+  .switch-btn:hover:not(.active) { border-color: #6b5ce7; color: #6b5ce7; }
+  .switch-hint { font-size: 12px; color: #888; }
+
+  .demo-section {
+    background: #fff; border-radius: 12px; padding: 24px 24px 24px 0;
+    margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    border: 1px solid #f0f0f0;
+  }
+  .demo-section .inner { padding-left: 24px; }
+
+  .section-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .section-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 3px;
+    font-weight: 500; color: #fff;
+  }
+  .badge-bad { background: #e74c3c; }
+  .badge-good { background: #27ae60; }
+
+  /* 复刻项目样式 */
+  .card-h2 { font-size: 18px; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; padding-left: 24px;}
+  .toolbar { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; padding-left: 24px;}
+  .search-input {
+    padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;
+    flex: 1; max-width: 300px; font-size: 13px;
+  }
+  .btn {
+    padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all .2s;
+  }
+  .btn-primary { background: #6b5ce7; color: #fff; }
+  .btn-primary:hover { background: #5a4bd4; }
+  .btn-danger { background: #e74c3c; color: #fff; }
+  .btn-ghost { background: #f0f0f0; color: #333; }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
+  .btn-icon {
+    padding: 6px; font-size: 12px; background: #6b5ce7; color: #fff;
+    border-radius: 8px; border: none; cursor: pointer;
+  }
+
+  .results-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .results-table th, .results-table td {
+    padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px;
+    vertical-align: middle; text-align: center;
+  }
+  .results-table thead th {
+    background: #f8f9fa; font-weight: 600;
+    position: sticky; top: 0; z-index: 2;
+  }
+  .results-table tbody tr:hover { background: #faf8ff; }
+  .results-table code { font-size: 12px; }
+  .cell-actions > div { display: flex; gap: 6px; justify-content: center; }
+
+  /* 行内展开详情面板（推荐方案） */
+  .detail-row > td { padding: 0 !important; border-bottom: 1px solid #eee; }
+  .detail-panel {
+    background: linear-gradient(180deg,#faf8ff,#fff);
+    border-left: 4px solid #6b5ce7;
+    padding: 16px 20px; text-align: left;
+    animation: slideDown .25s ease;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .detail-panel.flash { animation: flash 1.2s ease; }
+  @keyframes flash {
+    0% { box-shadow: 0 0 0 0 rgba(107,92,231,.45); }
+    50% { box-shadow: 0 0 0 8px rgba(107,92,231,.15); }
+    100% { box-shadow: 0 0 0 0 rgba(107,92,231,0); }
+  }
+  .detail-head { display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; }
+  .detail-title { font-size: 14px; font-weight: 600; color:#2c3e50; display:flex; align-items:center; gap:8px; }
+  .detail-meta { font-size: 12px; color:#666; margin-bottom: 10px; background:#f0f4ff; padding:8px 10px; border-radius:6px; }
+  .detail-meta strong { color:#2c3e50; }
+  .detail-table { width:100%; border-collapse: collapse; margin-top: 6px; }
+  .detail-table th, .detail-table td { font-size:12px; padding:6px 8px; border-bottom:1px solid #f0f0f0; text-align:left; }
+  .detail-table th { background:#f8f9fa; }
+  .detail-actions { margin-top: 12px; display:flex; gap:8px; }
+
+  /* 旧方案：详情在表格底部 */
+  .bottom-detail {
+    border-left: 4px solid #e74c3c; background:#fff0f0; padding:14px 18px;
+    border-radius: 6px; margin-top: 12px; font-size: 13px; color:#333;
+    text-align: left;
+  }
+  .bottom-detail .warn {
+    color:#e74c3c; font-weight:600; display:flex; align-items:center; gap:6px; margin-bottom:6px;
+  }
+  .scroll-anchor { height: 1px; overflow: hidden; }
+
+  .compare-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 980px){ .compare-grid { grid-template-columns: 1fr; } }
+
+  .principle-list { font-size:13px; color:#444; line-height:1.8; }
+  .principle-list li { margin-bottom: 4px; }
+  .tag { font-size:11px; padding:1px 6px; border-radius:3px; background:#eef; color:#6b5ce7; margin-left:6px;}
+
+  .hint-bar {
+    background:#fffbe6; border:1px solid #ffe58f; color:#8a6d3b;
+    padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:16px;
+    display:flex; align-items:center; gap:8px;
+  }
+</style>
+</head>
+<body>
+
+<h1>评测集管理 · 列表-详情交互优化 Demo</h1>
+<p class="subtitle">
+  现状痛点：评测集较多（超过一屏）时，单击某行的"编辑"按钮，详情面板渲染在表格最底部，<strong>不在当前可视范围内</strong>，用户需要大幅滚动才能找到信息。<br>
+  本 Demo 提供现状与优化方案的并排对比，便于直观感受体验差异。
+</p>
+
+<div class="layout-switch">
+  <span class="switch-hint">切换交互方案：</span>
+  <button class="switch-btn active" id="modeOptimized">优化方案：行内就地展开（推荐）</button>
+  <button class="switch-btn" id="modeLegacy">现状：详情在表格底部</button>
+</div>
+
+<div class="hint-bar" id="hintBar">
+  <span>💡</span>
+  <span id="hintText">优化方案：点击任意一行的"编辑/查看"按钮，详情会在<strong>该行正下方就地展开</strong>，并自动滚动到视口中央，无需用户寻找。</span>
+</div>
+
+<div class="demo-section" id="listCard">
+  <div class="inner">
+    <div class="section-header">
+      <span class="section-badge badge-good" id="modeBadge">推荐</span>
+      <h2 id="cardTitle">评测集管理 · 行内就地展开</h2>
+    </div>
+
+    <div class="toolbar">
+      <input class="search-input" placeholder="搜索数据集 ID..." />
+      <button class="btn btn-danger btn-sm">批量删除 (0)</button>
+    </div>
+
+    <table class="results-table" id="datasetTable">
+      <colgroup>
+        <col style="width:40px">
+        <col style="width:32%">
+        <col style="width:14%">
+        <col style="width:20%">
+        <col style="width:34%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th><input type="checkbox"></th>
+          <th>数据集 ID</th>
+          <th>数据条数</th>
+          <th>创建时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <!-- 旧方案：详情固定渲染在表格底部 -->
+    <div id="legacyDetailSlot"></div>
+  </div>
+</div>
+
+<div class="demo-section" style="background:#fafafa">
+  <div class="inner">
+    <div class="section-header">
+      <span class="section-badge" style="background:#6b5ce7">UCD 要点</span>
+      <h2>为什么"就地展开"更好</h2>
+    </div>
+    <ul class="principle-list">
+      <li><strong>就近反馈（Locality of Information）</strong>：用户点哪一行，信息就出现在哪一行附近，视线无需大幅迁移。<span class="tag">核心</span></li>
+      <li><strong>保持上下文</strong>：列表与详情同屏可见，用户可对照前后条目做判断，不必反复滚动。</li>
+      <li><strong>自动进入视口</strong>：展开后 scrollIntoView(block:'center')，详情始终落在可视区中央，杜绝"看不到"。</li>
+      <li><strong>视觉聚焦</strong>：左侧主色竖条 + 展开动画 + 短暂高亮，明确告诉用户"看这里"。</li>
+      <li><strong>同时修复根因</strong>：列表本身应加固定表头 / 分页 / 虚拟滚动，避免"一屏装不下"。本 Demo 已演示 sticky 表头。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ---- 模拟 24 条评测集数据，确保超过一屏 ----
+const datasets = [];
+for (let i = 1; i <= 24; i++) {
+  const day = String((i * 7) % 28 + 1).padStart(2, '0');
+  datasets.push({
+    id: `onto-eval-2026-${String(i).padStart(3,'0')}`,
+    item_count: 20 + (i * 3) % 50,
+    created_at: `2026-07-${day} 09:${String(i % 60).padStart(2,'0')}`,
+    rows: Array.from({length: 4}, (_, k) => ({
+      q: `本体知识问题示例 #${i}-${k+1}`,
+      gt: `参考答案 ${k+1}`,
+      ctx: `上下文片段 ${k+1}`
+    }))
+  });
+}
+
+let mode = 'optimized'; // 'optimized' | 'legacy'
+let openId = null;     // 行内展开的 id
+let legacyId = null;   // 旧方案展示的 id
+
+const tbody = document.getElementById('tbody');
+const legacySlot = document.getElementById('legacyDetailSlot');
+const modeBadge = document.getElementById('modeBadge');
+const cardTitle = document.getElementById('cardTitle');
+const hintText = document.getElementById('hintText');
+
+function detailPanelHtml(ds, flash) {
+  return `
+    <div class="detail-panel ${flash ? 'flash' : ''}" data-id="${ds.id}">
+      <div class="detail-head">
+        <div class="detail-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b5ce7" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          编辑数据集 · <code>${ds.id}</code>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeInline()">✕ 关闭</button>
+      </div>
+      <div class="detail-meta">
+        <strong>数据集 ID：</strong>${ds.id} &nbsp;|&nbsp;
+        <strong>数据条数：</strong>${ds.item_count} &nbsp;|&nbsp;
+        <strong>创建时间：</strong>${ds.created_at}
+      </div>
+      <table class="detail-table">
+        <thead><tr><th style="width:36px">#</th><th>问题</th><th>参考答案</th><th>上下文</th></tr></thead>
+        <tbody>
+          ${ds.rows.map((r,k)=>`
+            <tr>
+              <td style="text-align:center;font-weight:600">${k+1}</td>
+              <td><input style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px" value="${r.q}"></td>
+              <td><input style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px" value="${r.gt}"></td>
+              <td><input style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px" value="${r.ctx}"></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="detail-actions">
+        <button class="btn btn-primary btn-sm">保存修改</button>
+        <button class="btn btn-ghost btn-sm">取消</button>
+      </div>
+    </div>`;
+}
+
+function render() {
+  tbody.innerHTML = '';
+  legacySlot.innerHTML = '';
+
+  datasets.forEach((ds, idx) => {
+    const tr = document.createElement('tr');
+    tr.dataset.id = ds.id;
+    tr.innerHTML = `
+      <td><input type="checkbox"></td>
+      <td><code>${ds.id}</code></td>
+      <td>${ds.item_count}</td>
+      <td>${ds.created_at}</td>
+      <td class="cell-actions">
+        <div>
+          <button class="btn-icon" title="编辑/查看" data-act="edit">👁 编辑</button>
+          <button class="btn-icon" title="复制" data-act="copy">⧉</button>
+          <button class="btn-icon" title="删除" data-act="del" style="background:#e74c3c">🗑</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+
+    // 行内就地展开
+    if (mode === 'optimized' && openId === ds.id) {
+      const dtr = document.createElement('tr');
+      dtr.className = 'detail-row';
+      dtr.innerHTML = `<td colspan="5">${detailPanelHtml(ds, true)}</td>`;
+      tbody.appendChild(dtr);
+    }
+  });
+
+  // 旧方案：详情渲染在表格底部
+  if (mode === 'legacy' && legacyId) {
+    const ds = datasets.find(d => d.id === legacyId);
+    legacySlot.innerHTML = `
+      <div class="bottom-detail">
+        <div class="warn">
+          <span>⚠</span> 详情面板固定渲染在表格最底部 —— 当前列表 24 条，向下滚动看看它在哪
+        </div>
+        <div class="detail-head">
+          <div class="detail-title">编辑数据集 · <code>${ds.id}</code></div>
+        </div>
+        <div class="detail-meta">
+          <strong>数据集 ID：</strong>${ds.id} &nbsp;|&nbsp;
+          <strong>数据条数：</strong>${ds.item_count} &nbsp;|&nbsp;
+          <strong>创建时间：</strong>${ds.created_at}
+        </div>
+        <p style="font-size:12px;color:#888;margin-top:6px">（此处为详情内容示意，实际含可编辑表格）</p>
+      </div>`;
+  }
+
+  bindRowEvents();
+}
+
+function bindRowEvents() {
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    const id = tr.dataset.id;
+    tr.querySelector('[data-act="edit"]').addEventListener('click', () => onClickEdit(id));
+    tr.querySelector('[data-act="copy"]').addEventListener('click', () => flashRow(tr, '#27ae60'));
+    tr.querySelector('[data-act="del"]').addEventListener('click', () => flashRow(tr, '#e74c3c'));
+  });
+}
+
+function flashRow(tr, color) {
+  const orig = tr.style.background;
+  tr.style.background = color + '22';
+  setTimeout(() => tr.style.background = orig, 600);
+}
+
+function onClickEdit(id) {
+  if (mode === 'optimized') {
+    openId = (openId === id) ? null : id; // 再次点击收起
+    render();
+    // 自动滚动到展开面板中央
+    requestAnimationFrame(() => {
+      const panel = tbody.querySelector(`.detail-panel[data-id="${id}"]`);
+      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  } else {
+    legacyId = id;
+    render();
+    requestAnimationFrame(() => {
+      const el = legacySlot.querySelector('.bottom-detail');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+}
+
+window.closeInline = function () { openId = null; render(); };
+
+// 切换模式
+document.getElementById('modeOptimized').addEventListener('click', () => switchMode('optimized'));
+document.getElementById('modeLegacy').addEventListener('click', () => switchMode('legacy'));
+
+function switchMode(m) {
+  mode = m;
+  openId = null; legacyId = null;
+  document.getElementById('modeOptimized').classList.toggle('active', m === 'optimized');
+  document.getElementById('modeLegacy').classList.toggle('active', m === 'legacy');
+  if (m === 'optimized') {
+    modeBadge.textContent = '推荐'; modeBadge.className = 'section-badge badge-good';
+    cardTitle.textContent = '评测集管理 · 行内就地展开';
+    hintText.innerHTML = '优化方案：点击任意一行的"编辑/查看"按钮，详情会在<strong>该行正下方就地展开</strong>，并自动滚动到视口中央，无需用户寻找。';
+  } else {
+    modeBadge.textContent = '现状'; modeBadge.className = 'section-badge badge-bad';
+    cardTitle.textContent = '评测集管理 · 详情在表格底部（现状）';
+    hintText.innerHTML = '现状：点击靠下行的"编辑"按钮，详情渲染在表格<strong>最底部</strong>，离当前视口很远 —— 请先向下滚动到第 15 行左右再点击编辑，体验"看不到"的痛点。';
+  }
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

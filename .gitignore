@@ -1,0 +1,123 @@
+# Python compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Python test artifacts (保留 backend/tests/ 源码，只忽略运行产物)
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+pytest-*.log
+**/pytest-*.log
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+backend/.venv/
+
+# Frontend build & dependencies
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+
+# Playwright / E2E 运行产物（保留 frontend/e2e/tests 等用例源码）
+frontend/test-results/
+frontend/e2e/test-results/
+frontend/e2e/playwright-report/
+frontend/e2e/blob-report/
+frontend/e2e/.playwright/
+frontend/e2e/.e2e-dataset-io.sqlite
+/e2e/test-results/
+/e2e/playwright-report/
+/e2e/blob-report/
+/e2e/.playwright/
+/e2e/node_modules/
+
+# 根目录独立 e2e 工作区（本地临时副本；正式用例在 frontend/e2e/）
+/e2e/
+
+# IDE / 编辑器
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+.env.swp
+
+# pi 本地工具配置（shellPath 等机器特定，勿提交）
+.pi/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 环境变量与密钥（保留 .env.example）
+.env
+.env.local
+.env.docker
+*.env
+!.env.example
+
+# Langfuse 多项目 API Key（含 secret，勿提交）
+langfuse.projects.json
+
+# 本地数据库与运行时数据
+*.db
+*.sqlite
+backend/data/
+backend/logs/
+backend/*.db
+
+# 临时调试脚本与探测输出（backend 下 _ 前缀）
+backend/_*.py
+backend/_*.txt
+
+# 诊断脚本与 QA 数据（本地临时产物）
+backend/diag_xlsx.py
+docs/bq-agent-swarm-QA.xlsx
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Generated and review-only documentation artifacts
+docs/demo/
+docs/presentation/
+docs/postman/
+docs/**/*.html
+docs/**/*.pdf
+docs/**/*.png
+docs/**/*.svg
+docs/**/*.pptx
+
+# Temporary review / test / acceptance documents
+docs/测试用例-*.md
+docs/*验收*.md
+docs/*收口报告*.md
+docs/*CTO审视*.md
+docs/*用户待办*.md
+docs/*手工检查*.md
+
+# accidental artifact at repo root
+/=
+
+# 跨架构构建产物（镜像 tar 包，体积大，每次重新生成）
+eval-agent-arm64*.tar
+eval-agent-arm64*.tar.gz
+
+# md 目录：本体包通过界面上传管理，不纳入版本控制
+md/*/
+
+# MCP server 使用者配置（含 token，不入库）
+mcp/config.json

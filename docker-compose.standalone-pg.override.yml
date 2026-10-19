@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: onto-eval-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-onto_eval}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-onto_eval_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-onto_eval_fact}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - onto_eval_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-onto_eval} -d ${POSTGRES_DB:-onto_eval_fact}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: !override
+      - default
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-onto_eval}:${POSTGRES_PASSWORD:-onto_eval_dev}@postgres:5432/${POSTGRES_DB:-onto_eval_fact}
+
+volumes:
+  onto_eval_pg_data:
+    name: onto-eval-pg-data

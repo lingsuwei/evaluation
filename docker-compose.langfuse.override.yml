@@ -1,0 +1,20 @@
+# 连接 Langfuse 的 override：共享 Langfuse 的 PostgreSQL 并加入其网络
+# 使用方式：docker compose -f docker-compose.yml -f docker-compose.langfuse.override.yml up -d
+services:
+  postgres:
+    # 禁用本地 postgres，改用 langfuse 的 PG
+    profiles:
+      - disabled
+
+  app:
+    depends_on: !override {}
+    networks:
+      - default
+      - langfuse_net
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${ONTO_EVAL_PG_USER:-onto_eval_user}:${ONTO_EVAL_PG_PASSWORD:-onto_eval_dev}@${SHARED_PG_HOST:-langfuse-postgres}:5432/${ONTO_EVAL_PG_DB:-onto_eval_fact}
+
+networks:
+  langfuse_net:
+    external: true
+    name: langfuse_default

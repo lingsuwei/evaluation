@@ -1,0 +1,98 @@
+[
+  {
+    "question": "查询所有未组装完成的飞机架次",
+    "context": "",
+    "ground_truth": "有0010、0011、0012、0013、0014、0015这些架次",
+    "model_answer": "根据查询结果，所有未组装完成的飞机架次为：0010、0011、0012、0013、0014、0015。"
+  },
+  {
+    "question": "通过变更单ECO-003查询此次变更受影响的对象",
+    "context": "",
+    "ground_truth": "受影响对象ID: 0008, 变更前PART编码: 101011-001, 变更后PART编码: 101019-001, 变更前VersionID: VERSION0050, 变更后VersionID: VERSION0060, 在制品处理意见: 报废\n受影响对象ID: 0009, 变更前PART编码: 101012-001, 变更后PART编码: 101020-001, 变更前VersionID: VERSION0051, 变更后VersionID: VERSION0061, 在制品处理意见: 报废\n受影响对象ID: 0010, 变更前PART编码: 101013-001, 变更后PART编码: 101021-001, 变更前VersionID: VERSION0052, 变更后VersionID: VERSION0062, 在制品处理意见: 不处理\n受影响对象ID: 0011, 变更前PART编码: DSI100001-001, 变更后PART编码: DSI100003-001, 变更前VersionID: VERSION0053, 变更后VersionID: VERSION0063, 在制品处理意见: 报废\n受影响对象ID: 0012, 变更前PART编码: DSI100002-001, 变更后PART编码: DSI100004-001, 变更前VersionID: VERSION0054, 变更后VersionID: VERSION0064, 在制品处理意见: 报废\n受影响对象ID: 0013, 变更前PART编码: 101015-001, 变更后PART编码: 101023-001, 变更前VersionID: VERSION0056, 变更后VersionID: VERSION0066, 在制品处理意见: 报废\n受影响对象ID: 0014, 变更前PART编码: 101016-001, 变更后PART编码: 101024-001, 变更前VersionID: VERSION0057, 变更后VersionID: VERSION0067, 在制品处理意见: 报废\n受影响对象ID: 0015, 变更前PART编码: 101017-001, 变更后PART编码: 101025-001, 变更前VersionID: VERSION0058, 变更后VersionID: VERSION0068, 在制品处理意见: 报废\n受影响对象ID: 0016, 变更前PART编码: 101018-001, 变更后PART编码: 101026-001, 变更前VersionID: VERSION0059, 变更后VersionID: VERSION0069, 在制品处理意见: 报废",
+    "model_answer": "根据变更单 ECO-003，此次变更共影响了 9 个对象。以下是受影响对象的详细信息：\n\n受影响对象ID 变更前PART编码 变更前版本 变更后PART编码 变更后版本 在制品处理意见\n0008 101011-001 A 101019-001 A 报废\n0009 101012-001 A 101020-001 A 报废\n0010 101013-001 A 101021-001 A 不处理\n0011 DSI100001-001 A DSI100003-001 A 报废\n0012 DSI100002-001 A DSI100004-001 A 报废\n0013 101015-001 A 101023-001 A 报废\n0014 101016-001 A 101024-001 A 报废\n0015 101017-001 A 101025-001 A 报废\n0016 101018-001 A 101026-001 A 报废\n汇总说明：\n共 9 项 受影响对象。\n其中 8 项 要求对在制品进行“报废”处理。\n仅 1 项（ID: 0010） 的在制品“不处理”。\n如需进一步查询某个具体对象的变更详情，请告知受影响对象ID或PART编码。"
+  },
+  {
+    "question": "查询变更单ECO-003的基本信息",
+    "context": "",
+    "ground_truth": "ECO_ID：ECO-003\n变更内容：将机翼前缘的材料从原定的铝合金变更为钛合金，并调整铆接方案\n变更原因：提升零件抗腐蚀性，增强长期运行的安全性和可靠性\n适用机型：CF001\n有效性首架：0010\n有效性尾架：9999\n变更必要性：重要\n状态：待决策",
+    "model_answer": "变更单ECO-003的基本信息如下：\n\n变更单编号（ECO_ID）：ECO-003\n状态：待决策\n适用机型：CF001\n变更原因：提升零件抗腐蚀性，增强长期运行的安全性和可靠性\n变更内容：将机翼前缘的材料从原定的铝合金变更为钛合金，并调整铆接方案\n变更必要性：重要\n有效性范围：首架为0010，尾架为9999（即适用于第0010至9999架次）\n对象ID（object_id）：464\n该变更目前处于“待决策”阶段，尚未执行最终审批。"
+  },
+  {
+    "question": "根据EBOM的PART_VERSION_ID=VERSION0031,查询MBOM的PART_VERSION_ID，输出格式为：PART_VERSION_ID=？",
+    "context": "",
+    "ground_truth": "PART_VERSION_ID=VERSION0231",
+    "model_answer": "PART_VERSION_ID=VERSION0231"
+  },
+  {
+    "question": "根据EBOM的PART_VERSION_ID=VERSION0051,查询MBOM的，输出格式为：PART_VERSION_ID=？",
+    "context": "",
+    "ground_truth": "PART_VERSION_ID=VERSION0151",
+    "model_answer": "PART_VERSION_ID=VERSION0151"
+  },
+  {
+    "question": "根据MBOM的PART_VERSION_ID=VERSION0031，查询Part编码，输出格式：PART编码=？",
+    "context": "",
+    "ground_truth": "PART编码=101000-031",
+    "model_answer": "PART编码=101000-031"
+  },
+  {
+    "question": "根据MBOM的PART_VERSION_ID=VERSION0051，查询Part编码，输出格式：PART编码=？",
+    "context": "",
+    "ground_truth": "PART编码=101012-001",
+    "model_answer": "PART编码=101012-001"
+  },
+  {
+    "question": "根据ECO_ID=ECO-005，PART_VERSION_ID=VERSION0031，获取在制品处理意见，输出格式：在制品处理意见：？",
+    "context": "",
+    "ground_truth": "在制品处理意见：报废。",
+    "model_answer": "在制品处理意见：报废。"
+  },
+  {
+    "question": "根据ECO_ID=ECO-005，PART_VERSION_ID=VERSION0032，获取在制品处理意见，输出格式：在制品处理意见：？",
+    "context": "",
+    "ground_truth": "在制品处理意见：报废。",
+    "model_answer": "在制品处理意见：报废。"
+  },
+  {
+    "question": "根据ECO_ID=ECO-006，PART_VERSION_ID=VERSION0033，获取在制品处理意见，输出格式：在制品处理意见：？",
+    "context": "",
+    "ground_truth": "在制品处理意见：不处理。",
+    "model_answer": "在制品处理意见：不处理。"
+  },
+  {
+    "question": "0010架次的飞机的DD170部件是否在总装安装？",
+    "context": "",
+    "ground_truth": "已被安装",
+    "model_answer": "根据查询结果，0010架次飞机的DD170部件已在总装阶段被安装。"
+  },
+  {
+    "question": "0013架次的飞机的DD173部件是否已安装？",
+    "context": "",
+    "ground_truth": "已安装",
+    "model_answer": "执行过程:\n步骤 1\n工具: typedb\n执行详情:\n调用脚本: typedb_reader.py，参数: ['is_mbom_installed', '0013', 'DD173']\n结果:\n是，0013架次的飞机的DD173部件已安装。\n最终回答:\n根据查询结果，0013架次的飞机的DD173部件已安装。"
+  },
+  {
+    "question": "0014架次飞机的DD174部件的AO物料需求中物料的详细信息是什么？",
+    "context": "",
+    "ground_truth": "MATERIAL_LINE_ID：0018\n数量：1\n状态：生效中\nobject_id：750\nAO_OP_ID：AO_OP0003\nPART编码：DD174\n",
+    "model_answer": "根据查询结果，0014架次飞机的DD174部件在AO物料需求中所涉及物料的详细信息如下：\n\nMATERIAL_LINE_ID：0018\n数量：1\n状态：生效中\nobject_id：750\nAO_OP_ID：AO_OP0003\nPART编码：DD174\n该信息表明，DD174部件已纳入AO（装配指令）物料需求，处于生效状态，计划安装数量为1件。不过需注意，尽管物料需求已生效，但根据此前查询结果，该部件尚未实际安装到0014架次飞机上。"
+  },
+  {
+    "question": "查询part-version-id为VERSION0050的物料的报废成本 ",
+    "context": "",
+    "ground_truth": "报废成为为0",
+    "model_answer": "根据查询结果，part-version-id 为 VERSION0050 的物料的报废成本为 0"
+  },
+  {
+    "question": "查询VERSION0003的物料的报废成本 ",
+    "context": "",
+    "ground_truth": "报废成本为450",
+    "model_answer": "根据工具查询结果，part-version-id 为 VERSION0003 的物料的报废成本为 450"
+  },
+  {
+    "question": "查询ECO-003变更单中MBOM的零部件数量",
+    "context": "",
+    "ground_truth": "无",
+    "model_answer": ""
+  }
+]

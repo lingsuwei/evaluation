@@ -1,0 +1,4 @@
+# Shell 脚本在仓库中统一 LF，避免 WSL 执行 run_pg_smoke.sh 报 bash\r
+*.sh text eol=lf
+backend/scripts/run_all_tests.sh text eol=lf
+backend/scripts/run_pg_smoke.sh text eol=lf

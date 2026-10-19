@@ -1,0 +1,206 @@
+[
+  {
+    "question": "问题1：AO工序“AO_OP0001”的执行工位是什么？",
+    "context": "",
+    "ground_truth": "CF01-工位1",
+    "model_answer": ""
+  },
+  {
+    "question": "问题2：装配大纲“AO0001”的当前状态是什么？",
+    "context": "",
+    "ground_truth": "发布",
+    "model_answer": ""
+  },
+  {
+    "question": "问题3：工序“AO_OP0012”需要哪种物料且数量是多少？",
+    "context": "",
+    "ground_truth": "物料 B001，需求数量 1",
+    "model_answer": ""
+  },
+  {
+    "question": "问题4：检查点编码“0001”对应的验收标准是什么？",
+    "context": "",
+    "ground_truth": "无划痕，无毛刺",
+    "model_answer": ""
+  },
+  {
+    "question": "问题5：工序“AO_OP0002”定义的标准工时是多少？",
+    "context": "",
+    "ground_truth": "60天 (60 D)",
+    "model_answer": ""
+  },
+  {
+    "question": "问题6：ECO变更单“ECO-001”的有效性范围是多少？",
+    "context": "",
+    "ground_truth": "10~9999 (第10架次起生效)",
+    "model_answer": ""
+  },
+  {
+    "question": "问题7：“ECO-001”中物料版本“VERSION0003”的处理意见？",
+    "context": "",
+    "ground_truth": "报废",
+    "model_answer": ""
+  },
+  {
+    "question": "问题8：“ECO-001”的技术审查主审结论是什么？",
+    "context": "",
+    "ground_truth": "通过 (备注：请尽快执行)",
+    "model_answer": ""
+  },
+  {
+    "question": "问题9：单位“M01”执行“ECO-001”变更需要的时长？",
+    "context": "",
+    "ground_truth": "4天 (4 D)",
+    "model_answer": ""
+  },
+  {
+    "question": "问题10：ECO受影响对象“0001”对应的物料变更类型？",
+    "context": "",
+    "ground_truth": "物料替换",
+    "model_answer": ""
+  },
+  {
+    "question": "问题11：设计物料“PART0003”的制造类型是什么？",
+    "context": "",
+    "ground_truth": "自制件",
+    "model_answer": ""
+  },
+  {
+    "question": "问题12：制造物料“A001”的物料成本是多少？",
+    "context": "",
+    "ground_truth": "450元",
+    "model_answer": ""
+  },
+  {
+    "question": "问题13：物料版本“VERSION0004”使用的材料牌号？",
+    "context": "",
+    "ground_truth": "304钢",
+    "model_answer": ""
+  },
+  {
+    "question": "问题14：物料“B002”的来源方式是什么？",
+    "context": "",
+    "ground_truth": "BUY (采购)",
+    "model_answer": ""
+  },
+  {
+    "question": "问题15：飞机架次“F000”对应的顺序编号是多少？",
+    "context": "",
+    "ground_truth": "10",
+    "model_answer": ""
+  },
+  {
+    "question": "问题16：项目“0001”的机型和项目优先级是什么？",
+    "context": "",
+    "ground_truth": "机型 CF01，优先级 高",
+    "model_answer": ""
+  },
+  {
+    "question": "问题17：加工任务令“P001”目前的执行状态是什么？",
+    "context": "",
+    "ground_truth": "已完成",
+    "model_answer": ""
+  },
+  {
+    "question": "问题18：F003架次的A001物料目前处于什么状态？",
+    "context": "",
+    "ground_truth": "已发料 (时间: 2025-12-25)",
+    "model_answer": ""
+  },
+  {
+    "question": "问题19：供应商“S01”的认证状态是什么？",
+    "context": "",
+    "ground_truth": "已认证",
+    "model_answer": ""
+  },
+  {
+    "question": "问题20：物料“B002”目前的“在库”数量是多少？",
+    "context": "",
+    "ground_truth": "25个",
+    "model_answer": ""
+  },
+  {
+    "question": "问题21：M002是否有对应的MPart记录？其供应商采购认证周期是多少？",
+    "context": "",
+    "ground_truth": "涉及组成零件M002，M002物料有对应的MPart记录，供应商采购认证周期是30天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题22：ECO-001变更单中，物料变更为Version0006，涉及的新物料是否有对应的MPart记录？",
+    "context": "",
+    "ground_truth": "涉及新物料A101，该物料有对应的MPart记录",
+    "model_answer": ""
+  },
+  {
+    "question": "问题23：B101物料有哪些零件组成？M002的供应商采购认证周期和采购周期分别是多少？",
+    "context": "",
+    "ground_truth": "B101由M002组成，M002的供应商采购认证周期是30天，采购周期是30天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题24：ECO-001变更单的当前状态是什么？涉及哪些受影响对象？这些受影响对象的物料变更类型是什么？",
+    "context": "",
+    "ground_truth": "ECO-001变更单的当前状态是待决策，涉及受影响对象编号0001和0002，物料变更类型均为物料替换",
+    "model_answer": ""
+  },
+  {
+    "question": "问题25：ECO-001变更单的变更内容是什么？适用机型是什么？变更必要性是什么？",
+    "context": "",
+    "ground_truth": "ECO-001变更单的变更内容是将机翼前缘的材料从原定的铝合金变更为钛合金，并调整铆接方案，适用机型是CF01，变更必要性是重要",
+    "model_answer": ""
+  },
+  {
+    "question": "问题26：M001物料（304钢材）的MPart类别是什么？当前库存情况如何？可用周期是多少？",
+    "context": "",
+    "ground_truth": "M001物料的MPart类别是采购件，当前库存5个，在途10个，可用周期为0天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题27：M002的供应商采购认证周期和采购周期分别是多少？",
+    "context": "",
+    "ground_truth": "M002的供应商采购认证周期是30天，采购周期是30天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题28：B002物料的MPart类别是什么？当前库存情况如何？是否有采购订单？供应商份额和采购周期分别是多少？",
+    "context": "",
+    "ground_truth": "B002物料的MPart类别是标准件，当前库存25个，在途10个，有采购订单，供应商S01和S02各占50%份额，采购周期均为20天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题29：M002物料的供应商编码是什么？该物料的供应商采购认证状态是什么？M002的采购周期是多少？",
+    "context": "",
+    "ground_truth": "M002物料的供应商编码是S03，供应商的认证状态是认证中，M002的采购周期是30天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题30：A001物料的MPart类别是什么？当前库存情况如何？制造周期是多少？",
+    "context": "",
+    "ground_truth": "A001物料的MPart类别是装配件，当前总装在制1个，在库3个，在制5个，制造周期是30天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题31：B001物料的MPart类别是什么？当前库存情况如何？制造周期是多少？",
+    "context": "",
+    "ground_truth": "B001物料的MPart类别是自制零件，当前在制5个，在库5个，制造周期是45天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题32：ECO-001变更单的状态是什么？涉及哪些执行周期？执行周期分别是多少？",
+    "context": "",
+    "ground_truth": "ECO-001变更单的状态是待决策，涉及执行周期编号0001、0002、0003，执行周期分别是4天、3天、5天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题33：B002物料的当前库存情况如何？可用周期是多少？供应商采购认证周期是多少？",
+    "context": "",
+    "ground_truth": "B002物料当前库存25个，在途10个，可用周期为0天，供应商采购认证周期是45天",
+    "model_answer": ""
+  },
+  {
+    "question": "问题34：M002物料的当前库存情况如何？可用周期是多少？供应商采购认证周期和采购周期分别是多少？",
+    "context": "",
+    "ground_truth": "M002物料当前库存为0，可用周期为60天，供应商采购认证周期是30天，采购周期是30天",
+    "model_answer": ""
+  }
+]

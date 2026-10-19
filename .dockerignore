@@ -1,0 +1,26 @@
+# Node
+frontend/node_modules
+frontend/.vite
+
+# Python
+backend/__pycache__
+backend/evaluators/__pycache__
+backend/.venv
+backend/*.db
+
+# IDE
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+*.tar
+
+# Misc
+*.md
+*.log

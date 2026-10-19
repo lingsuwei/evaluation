@@ -1,0 +1,34 @@
+aiohttp>=3.10.5
+fastapi>=0.109.0
+uvicorn>=0.27.0
+sqlalchemy>=2.0.25
+aiosqlite>=0.19.0
+asyncpg>=0.29.0
+psycopg2-binary>=2.9.9
+alembic>=1.13.0
+pydantic>=2.5.3
+python-multipart>=0.0.6
+sse-starlette>=1.8.2
+python-dotenv>=1.0.0
+openai>=1.0.0
+
+# XLSX 导入/导出支持
+openpyxl>=3.1.0
+
+# OpenTelemetry
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-exporter-otlp>=1.21.0
+PyYAML>=6.0.1
+
+# 版本对比服务
+numpy>=1.24.0
+
+# Langfuse (v2.1 trace observability)
+langfuse>=2.0.0,<5.0.0
+httpx>=0.27.0
+
+# DeepEval（可选依赖：安装后解锁 25 项高级评测指标 + 自定义 geval/dag 指标）
+# 未安装时 onto-eval 现有 3 项指标（faithfulness/answer_relevancy/correctness）不受影响
+# 安装方式：pip install deepeval>=4.0.6
+deepeval>=4.0.6

@@ -1,0 +1,45 @@
+# onto-eval Release Gate（GitCode / GitLab CI）
+# 门禁：冲突扫描 → 后端 L1 单测 → 前端 build
+# v1.22：Agent Push 已废弃，CI 不涉及 Push live 步骤
+
+stages:
+  - check
+  - test
+  - build
+
+variables:
+  PIP_INDEX_URL: "https://mirrors.aliyun.com/pypi/simple/"
+  NPM_CONFIG_REGISTRY: "https://registry.npmmirror.com"
+
+ci-check:
+  stage: check
+  image: python:3.11-slim
+  script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null
+    - pip install --no-cache-dir pyyaml -i "$PIP_INDEX_URL"
+    - bash scripts/ci-check.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+backend-test:
+  stage: test
+  image: python:3.11-slim
+  before_script:
+    - pip install --no-cache-dir -r backend/requirements-dev.txt -i "$PIP_INDEX_URL"
+  script:
+    - cd backend && python -m pytest -q -m "not integration and not postgresql" --tb=short
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+frontend-build:
+  stage: build
+  image: node:20-alpine
+  before_script:
+    - cd frontend && npm ci --registry="$NPM_CONFIG_REGISTRY"
+  script:
+    - cd frontend && npm run build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH

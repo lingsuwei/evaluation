@@ -1,0 +1,7 @@
+{
+  "backend_url": "http://localhost:8000",
+  "token": "",
+  "request_timeout": 200,
+  "default_metric": "faithfulness",
+  "default_threshold": null
+}

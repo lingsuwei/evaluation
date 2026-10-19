@@ -1,0 +1,169 @@
+{
+  "description": "onto-agent 默认识别过程点；将 YOUR_AGENT_NAME 改为 onto-eval Agent 管理中的名称后导入",
+  "source": "0520/onto-agent LangfuseExporter + tools/registry.py",
+  "templates": [
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "Run 已启动",
+      "description": "Langfuse trace 含 agent_request",
+      "order": 1,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "observation_name", "op": "contains", "value": "agent_request:" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "主 Agent 循环",
+      "description": "agent_loop:main",
+      "order": 2,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "observation_name", "op": "eq", "value": "agent_loop:main" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "LLM 推理轮次",
+      "description": "llm:main_iteration",
+      "order": 3,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "observation_name", "op": "contains", "value": "llm:main_iteration" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "发生过工具调用",
+      "description": "ReAct 至少调用一次内置工具",
+      "order": 4,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "observation_name", "op": "contains", "value": "tool:" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "本体上下文加载",
+      "description": "tool:ontology_context",
+      "order": 5,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "observation_name", "op": "eq", "value": "tool:ontology_context" },
+          { "type": "metadata", "key": "tool_name", "op": "eq", "value": "ontology_context" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "Skill 文档加载",
+      "description": "tool:skill，加载 .onto-runtime 下 SKILL.md",
+      "order": 6,
+      "required": false,
+      "score_weight": 0.8,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "observation_name", "op": "eq", "value": "tool:skill" },
+          { "type": "metadata", "key": "tool_name", "op": "eq", "value": "skill" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "业务数据检索",
+      "description": "tool:business_data_search",
+      "order": 7,
+      "required": false,
+      "score_weight": 0.8,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "metadata", "key": "tool_name", "op": "eq", "value": "business_data_search" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "本体脚本执行",
+      "description": "tool:execute_script",
+      "order": 8,
+      "required": false,
+      "score_weight": 0.8,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "metadata", "key": "tool_name", "op": "eq", "value": "execute_script" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "记忆操作",
+      "description": "tool:memory",
+      "order": 9,
+      "required": false,
+      "score_weight": 0.5,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "metadata", "key": "tool_name", "op": "eq", "value": "memory" }
+        ]
+      }
+    },
+    {
+      "agent_name": "YOUR_AGENT_NAME",
+      "name": "子 Agent 编排",
+      "description": "multi_agent 模式下 spawn_sub_agent",
+      "order": 10,
+      "required": false,
+      "score_weight": 0.5,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          { "type": "metadata", "key": "tool_name", "op": "eq", "value": "spawn_sub_agent" },
+          { "type": "observation_name", "op": "eq", "value": "agent_loop:subagent" }
+        ]
+      }
+    }
+  ]
+}

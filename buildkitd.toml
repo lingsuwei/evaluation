@@ -1,0 +1,10 @@
+[registry."docker.io"]
+  mirrors = ["docker.m.daocloud.io", "docker.1ms.run"]
+
+[registry."docker.m.daocloud.io"]
+  http = false
+  insecure = false
+
+[registry."docker.1ms.run"]
+  http = false
+  insecure = false

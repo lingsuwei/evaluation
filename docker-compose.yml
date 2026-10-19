@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: onto-eval-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-onto_eval}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-onto_eval_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-onto_eval_fact}
+    ports:
+      - "${POSTGRES_PORT:-45432}:5432"
+    volumes:
+      - onto_eval_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-onto_eval} -d ${POSTGRES_DB:-onto_eval_fact}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FRONTEND_BASE_IMAGE: ${FRONTEND_BASE_IMAGE:-node:20-alpine}
+        PYTHON_BASE_IMAGE: ${PYTHON_BASE_IMAGE:-python:3.11-slim}
+    image: eval-agent:latest
+    container_name: onto-eval-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "45500:80"
+      - "${FASTAPI_PORT:-3001}:8000"
+    volumes:
+      # 整体挂载后端代码，容器内直接引用宿主源码（避免容器内残留旧版本）
+      # - 排他策略：data / logs / __pycache__ 等子目录的单独 mount 仍生效
+      - ./backend:/app/backend
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/backend/logs
+      - ./md:/app/md
+      - ./images:/app/images
+      - ./本体评测平台使用指南.md:/app/本体评测平台使用指南.md:ro
+      # 场景 XLSX 模板：直接挂载项目根文件作为下载模板
+      - ./template-scenario.xlsx:/app/data/template-scenario.xlsx:ro
+    env_file:
+      - .env
+    environment:
+      - LANGFUSE_PROJECTS_FILE=/app/data/langfuse.projects.json
+      - ENABLED_METRICS=${ENABLED_METRICS:-faithfulness,answer_relevancy,correctness}
+      - LANGFUSE_HOST=${LANGFUSE_HOST:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - LANGFUSE_DEFAULT_PROJECT=${LANGFUSE_DEFAULT_PROJECT:-}
+      - LANGFUSE_WRITE_PROJECT=${LANGFUSE_WRITE_PROJECT:-}
+      - ONTO_AGENT_BASE_URL=${ONTO_AGENT_BASE_URL:-http://host.docker.internal:5055}
+      - ONTO_AGENT_API_TOKEN=${ONTO_AGENT_API_TOKEN:-}
+      - ONTO_AGENT_WORKSPACE=${ONTO_AGENT_WORKSPACE:-}
+      - ONTO_AGENT_TIMEOUT=${ONTO_AGENT_TIMEOUT:-1800}
+      - TRACE_SYNC_WORKER_ENABLED=${TRACE_SYNC_WORKER_ENABLED:-true}
+      - BUILDER_ALLOW_LEGACY_AGGREGATE_KEY=${BUILDER_ALLOW_LEGACY_AGGREGATE_KEY:-true}
+      # 容器内使用 postgres 服务名（端口 5432）；宿主机 Alembic 用 127.0.0.1:${POSTGRES_PORT}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://onto_eval:onto_eval_dev@postgres:5432/onto_eval_fact}
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+
+volumes:
+  # 固定卷名，避免部署目录 / COMPOSE_PROJECT_NAME 变化时新建空 PG 卷
+  onto_eval_pg_data:
+    name: onto-eval_onto_eval_pg_data

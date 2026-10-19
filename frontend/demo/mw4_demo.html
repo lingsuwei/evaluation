@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M-W4 Demo | 工作流评测前端效果</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f6fa;
+    color: #333;
+    padding: 24px;
+    overflow: auto;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h2 { font-size: 16px; margin-bottom: 12px; color: #4a4a4a; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
+  .demo-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 12px;
+  }
+  .section-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 3px;
+    background: #667eea; color: #fff; font-weight: 500;
+  }
+
+  /* Member color palette */
+  .member-legend {
+    display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #666;
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+  }
+
+  /* Span tree */
+  .span-tree { font-size: 12px; }
+  .span-node {
+    padding: 6px 8px; border-radius: 4px; margin-bottom: 6px;
+    cursor: pointer; border: 1px solid #e0e0e0;
+    transition: all 0.15s;
+  }
+  .span-node:hover { border-color: #667eea; }
+  .span-node.selected { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.15); }
+  .span-node .node-name { font-weight: 500; }
+  .span-node .node-meta { color: #888; margin-top: 2px; font-size: 11px; }
+  .span-node .member-tag {
+    display: inline-block; font-size: 10px; padding: 1px 6px;
+    border-radius: 3px; margin-left: 6px; font-weight: 500;
+  }
+  .span-children { margin-left: 20px; }
+
+  /* Member colors */
+  .m-alice { background: #e3f2fd; border-color: #90caf9; }
+  .m-alice .member-tag { background: #1976d2; color: #fff; }
+  .m-bob { background: #e8f5e9; border-color: #a5d6a7; }
+  .m-bob .member-tag { background: #388e3c; color: #fff; }
+  .m-carol { background: #fce4ec; border-color: #f48fb1; }
+  .m-carol .member-tag { background: #c62828; color: #fff; }
+  .m-leader { background: #f3e5f5; border-color: #ce93d8; }
+  .m-leader .member-tag { background: #7b1fa2; color: #fff; }
+  .m-overall { background: #f5f5f5; border-color: #e0e0e0; }
+  .m-overall .member-tag { background: #666; color: #fff; }
+
+  /* Role roster diff */
+  .roster-diff { display: flex; gap: 24px; }
+  .roster-col { flex: 1; }
+  .roster-col h3 { font-size: 13px; margin-bottom: 8px; color: #555; }
+  .roster-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .roster-table th {
+    text-align: left; padding: 6px 10px; background: #f9f9f9;
+    border-bottom: 2px solid #f0f0f0; font-weight: 500; color: #666;
+  }
+  .roster-table td {
+    padding: 6px 10px; border-bottom: 1px solid #f0f0f0;
+  }
+  .roster-row-added { background: #e8f5e9; }
+  .roster-row-removed { background: #ffebee; }
+  .roster-row-changed { background: #fff3e0; }
+  .roster-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+  }
+  .badge-added { background: #c8e6c9; color: #2e7d32; }
+  .badge-removed { background: #ffcdd2; color: #c62828; }
+  .badge-changed { background: #ffe0b2; color: #e65100; }
+
+  /* Per-member aggregate */
+  .member-agg-section { margin-bottom: 16px; }
+  .member-agg-header {
+    font-size: 13px; font-weight: 500; margin-bottom: 8px;
+    padding: 6px 10px; border-radius: 4px; display: inline-block;
+  }
+  .agg-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px; }
+  .agg-table th {
+    text-align: left; padding: 6px 10px; background: #f9f9f9;
+    border-bottom: 2px solid #f0f0f0; font-weight: 500; color: #666;
+  }
+  .agg-table td {
+    padding: 6px 10px; border-bottom: 1px solid #f0f0f0;
+  }
+  .agg-delta-up { color: #2e7d32; }
+  .agg-delta-down { color: #c62828; }
+  .agg-delta-same { color: #888; }
+
+  /* Workflow Lift */
+  .lift-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  .lift-card {
+    border-radius: 8px; padding: 16px; text-align: center;
+    border: 1px solid #e0e0e0;
+  }
+  .lift-card h3 { font-size: 12px; color: #888; margin-bottom: 8px; }
+  .lift-value { font-size: 28px; font-weight: 700; }
+  .lift-value.positive { color: #2e7d32; }
+  .lift-value.negative { color: #c62828; }
+  .lift-value.neutral { color: #666; }
+  .lift-sub { font-size: 11px; color: #888; margin-top: 4px; }
+  .lift-detail { font-size: 11px; color: #666; margin-top: 8px; text-align: left; }
+  .lift-conclusion {
+    margin-top: 16px; padding: 10px 16px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; text-align: center;
+  }
+  .conclusion-lift { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+  .conclusion-regression { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+  .conclusion-neutral { background: #f5f5f5; color: #666; border: 1px solid #e0e0e0; }
+
+  /* Dual tree compare */
+  .dual-tree { display: flex; gap: 16px; align-items: flex-start; }
+  .dual-tree > div { flex: 1; min-width: 0; }
+  .tree-col-title { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #f0f0f0; }
+  .tab {
+    padding: 8px 16px; font-size: 13px; cursor: pointer;
+    border: none; background: transparent; color: #888;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .tab.active { color: #667eea; border-bottom-color: #667eea; font-weight: 500; }
+  .tab:hover { color: #667eea; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<h1>M-W4 前端效果 Demo</h1>
+<p class="subtitle">工作流评测适配 — member 着色 Span 树 / role_roster diff / per-member 聚合 / Workflow Lift Dashboard</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(event, 'tab-rundetail')">Run 详情（member 着色）</button>
+  <button class="tab" onclick="switchTab(event, 'tab-roster')">Role Roster Diff</button>
+  <button class="tab" onclick="switchTab(event, 'tab-memberagg')">Per-Member 聚合对比</button>
+  <button class="tab" onclick="switchTab(event, 'tab-lift')">Workflow Lift</button>
+</div>
+
+<!-- ============ Tab 1: Run Detail (member colored span tree) ============ -->
+<div id="tab-rundetail" class="tab-content active">
+  <div class="demo-section">
+    <div class="section-header">
+      <span class="section-badge">M-W4-1</span>
+      <h2>Run 详情 — Span 树按 Member 着色</h2>
+    </div>
+
+    <div class="member-legend" id="legend"></div>
+
+    <div style="display: flex; gap: 16px; align-items: flex-start;">
+      <div class="span-tree" style="flex: 1; min-width: 0;" id="spanTree"></div>
+      <div style="width: 220px; flex-shrink: 0; font-size: 12px; color: #666;" id="detailPanel">
+        <strong>节点下钻</strong>
+        <div style="margin-top: 8px; color: #888;">点击左侧节点查看详情</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Tab 2: Role Roster Diff ============ -->
+<div id="tab-roster" class="tab-content">
+  <div class="demo-section">
+    <div class="section-header">
+      <span class="section-badge">M-W3-1</span>
+      <h2>Role Roster Diff — 角色花名册对比</h2>
+    </div>
+
+    <div style="font-size: 12px; color: #888; margin-bottom: 12px;">
+      <span>left_run: <code>run_workflow_v2</code> (agent_swarm v2, 3 members)</span>
+      <span style="margin-left: 16px;">right_run: <code>run_workflow_v1</code> (agent_swarm v1, 2 members)</span>
+    </div>
+
+    <div class="roster-diff" id="rosterDiff"></div>
+
+    <div style="margin-top: 16px; padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 12px;">
+      <strong>对比结论</strong>
+      <ul style="margin: 8px 0 0 16px; color: #555; line-height: 1.8;">
+        <li>新增成员：<code>carol</code>（reviewer）— v2 引入了代码审查角色</li>
+        <li>角色变更：<code>bob</code> 从 <code>coder</code> → <code>reviewer</code>（职责调整）</li>
+        <li>保持不变：<code>alice</code> 仍为 researcher</li>
+        <li>成员总数：3 → 2（净增 1 人）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Tab 3: Per-Member Aggregate ============ -->
+<div id="tab-memberagg" class="tab-content">
+  <div class="demo-section">
+    <div class="section-header">
+      <span class="section-badge">M-W3-2</span>
+      <h2>Per-Member 事件聚合对比</h2>
+    </div>
+
+    <div style="font-size: 12px; color: #888; margin-bottom: 12px;">
+      <span>left: <code>run_workflow_v2</code></span>
+      <span style="margin-left: 16px;">right: <code>run_workflow_v1</code></span>
+    </div>
+
+    <div id="memberAgg"></div>
+  </div>
+
+  <div class="demo-section">
+    <div class="section-header">
+      <span class="section-badge">M-W3-2</span>
+      <h2>Per-Member 拓扑对比</h2>
+    </div>
+    <div id="memberTopo"></div>
+  </div>
+</div>
+
+<!-- ============ Tab 4: Workflow Lift ============ -->
+<div id="tab-lift" class="tab-content">
+  <div class="demo-section">
+    <div class="section-header">
+      <span class="section-badge">M-W3-3</span>
+      <h2>Workflow Lift Dashboard — 工作流 vs 单 Agent 提升量</h2>
+    </div>
+
+    <div style="font-size: 12px; color: #888; margin-bottom: 16px;">
+      <span>left (workflow): <code>run_agent_swarm_001</code> (3 members)</span>
+      <span style="margin-left: 16px;">right (baseline): <code>run_single_agent_001</code> (single agent)</span>
+    </div>
+
+    <div class="lift-grid" id="liftCards"></div>
+    <div id="liftConclusion"></div>
+    <div id="liftDetail" style="margin-top: 16px;"></div>
+  </div>
+</div>
+
+<script>
+// ========== Mock Data ==========
+
+const MEMBER_COLORS = {
+  'alice': { bg: '#e3f2fd', border: '#90caf9', tag: '#1976d2', label: 'Alice', role: 'Researcher' },
+  'bob':   { bg: '#e8f5e9', border: '#a5d6a7', tag: '#388e3c', label: 'Bob', role: 'Coder' },
+  'carol': { bg: '#fce4ec', border: '#f48fb1', tag: '#c62828', label: 'Carol', role: 'Reviewer' },
+  'leader':{ bg: '#f3e5f5', border: '#ce93d8', tag: '#7b1fa2', label: 'Leader', role: 'Orchestrator' },
+  '_overall': { bg: '#f5f5f5', border: '#e0e0e0', tag: '#666', label: 'Overall', role: '—' },
+};
+
+// Span tree mock (workflow run with 3 members)
+const SPAN_TREE = [
+  {
+    id: 'n1', name: 'agent_swarm', aggregate_key: 'kind:team_tool',
+    latency_ms: 4200, tokens: 1850, node_type: 'span',
+    member: 'leader',
+    children: [
+      {
+        id: 'n2', name: 'llm:main_iteration', aggregate_key: 'llm:main_iteration',
+        latency_ms: 800, tokens: 320, node_type: 'generation',
+        member: 'leader',
+        children: [
+          {
+            id: 'n3', name: 'team_event:delegate', aggregate_key: 'tool:delegate',
+            latency_ms: 120, tokens: 0, node_type: 'span',
+            member: 'leader',
+          },
+          {
+            id: 'n4', name: 'team_event:handoff', aggregate_key: 'tool:handoff',
+            latency_ms: 80, tokens: 0, node_type: 'span',
+            member: 'leader',
+          },
+        ]
+      },
+      {
+        id: 'n5', name: 'web_search', aggregate_key: 'tool:web_search',
+        latency_ms: 650, tokens: 180, node_type: 'tool',
+        member: 'alice',
+        children: [
+          {
+            id: 'n6', name: 'llm:generation', aggregate_key: 'llm:generation',
+            latency_ms: 400, tokens: 260, node_type: 'generation',
+            member: 'alice',
+          }
+        ]
+      },
+      {
+        id: 'n7', name: 'code_interpreter', aggregate_key: 'tool:code_interpreter',
+        latency_ms: 950, tokens: 420, node_type: 'tool',
+        member: 'bob',
+        children: [
+          {
+            id: 'n8', name: 'llm:generation', aggregate_key: 'llm:generation',
+            latency_ms: 500, tokens: 310, node_type: 'generation',
+            member: 'bob',
+          }
+        ]
+      },
+      {
+        id: 'n9', name: 'code_review', aggregate_key: 'tool:code_review',
+        latency_ms: 300, tokens: 160, node_type: 'tool',
+        member: 'carol',
+      },
+      {
+        id: 'n10', name: 'team_event:merge', aggregate_key: 'tool:merge',
+        latency_ms: 100, tokens: 0, node_type: 'span',
+        member: 'leader',
+      }
+    ]
+  }
+];
+
+// Role roster mock
+const ROSTER_LEFT = [
+  { member_name: 'alice', role: 'researcher' },
+  { member_name: 'bob', role: 'reviewer' },
+  { member_name: 'carol', role: 'reviewer' },
+];
+const ROSTER_RIGHT = [
+  { member_name: 'alice', role: 'researcher' },
+  { member_name: 'bob', role: 'coder' },
+];
+
+// Per-member aggregate mock
+const MEMBER_AGG = {
+  'alice': [
+    { aggregate_key: 'tool:web_search', left: { count: 3, latency_ms_sum: 1950, tokens_sum: 540 }, right: { count: 2, latency_ms_sum: 1200, tokens_sum: 360 } },
+    { aggregate_key: 'llm:generation', left: { count: 2, latency_ms_sum: 800, tokens_sum: 520 }, right: { count: 1, latency_ms_sum: 400, tokens_sum: 260 } },
+  ],
+  'bob': [
+    { aggregate_key: 'tool:code_interpreter', left: { count: 2, latency_ms_sum: 1900, tokens_sum: 840 }, right: { count: 3, latency_ms_sum: 2850, tokens_sum: 1260 } },
+    { aggregate_key: 'llm:generation', left: { count: 1, latency_ms_sum: 500, tokens_sum: 310 }, right: { count: 2, latency_ms_sum: 1000, tokens_sum: 620 } },
+  ],
+  'carol': [
+    { aggregate_key: 'tool:code_review', left: { count: 1, latency_ms_sum: 300, tokens_sum: 160 }, right: { count: 0, latency_ms_sum: 0, tokens_sum: 0 } },
+  ],
+};
+
+// Per-member topology mock
+const MEMBER_TOPO = {
+  'alice': { left_edges: 3, right_edges: 3, same: true, only_left: 0, only_right: 0 },
+  'bob':   { left_edges: 2, right_edges: 3, same: false, only_left: 0, only_right: 1 },
+  'carol': { left_edges: 1, right_edges: 0, same: false, only_left: 1, only_right: 0 },
+};
+
+// Workflow Lift mock
+const LIFT_DATA = {
+  outcome: {
+    avg_lift_pct: 18.5,
+    by_metric: [
+      { metric: 'answer_relevancy', left: 0.92, right: 0.78, delta: 0.14, lift_pct: 17.9 },
+      { metric: 'faithfulness', left: 0.88, right: 0.72, delta: 0.16, lift_pct: 22.2 },
+      { metric: 'step_efficiency', left: 0.85, right: 0.75, delta: 0.10, lift_pct: 13.3 },
+    ]
+  },
+  cost: { left_tokens: 1850, right_tokens: 2400, token_delta: 550, cost_lift_pct: 22.9 },
+  latency: { left_latency_ms: 4200, right_latency_ms: 5800, latency_delta_ms: 1600, latency_lift_pct: 27.6 },
+  member: { left: 3, right: 0, delta: 3 },
+  improvement_percentage: 23.0,
+  conclusion: 'workflow_lift',
+};
+
+// ========== Render Functions ==========
+
+function memberClass(member) {
+  return 'm-' + (member || 'overall');
+}
+
+function memberTag(member) {
+  if (!member || member === '_overall') return '';
+  const c = MEMBER_COLORS[member] || MEMBER_COLORS['_overall'];
+  return `<span class="member-tag" style="background:${c.tag}">${c.label}</span>`;
+}
+
+function renderSpanNode(node, depth) {
+  const cls = memberClass(node.member);
+  const children = (node.children || []).map(c => renderSpanNode(c, depth + 1)).join('');
+  return `
+    <div style="margin-left: ${depth * 16}px; margin-bottom: 6px;">
+      <div class="span-node ${cls}" onclick="selectNode('${node.id}')">
+        <div class="node-name">
+          ${node.name}
+          ${memberTag(node.member)}
+        </div>
+        <div class="node-meta">
+          ${node.aggregate_key || '—'}
+          ${node.latency_ms != null ? ' · ' + (node.latency_ms / 1000).toFixed(2) + 's' : ''}
+          ${node.tokens != null ? ' · ' + node.tokens + ' tok' : ''}
+          ${node.node_type ? ' · ' + node.node_type : ''}
+        </div>
+      </div>
+      ${children ? '<div class="span-children">' + children + '</div>' : ''}
+    </div>
+  `;
+}
+
+function selectNode(id) {
+  document.querySelectorAll('.span-node').forEach(n => n.classList.remove('selected'));
+  // find node
+  const node = findNode(SPAN_TREE, id);
+  if (node) {
+    const c = MEMBER_COLORS[node.member] || MEMBER_COLORS['_overall'];
+    document.getElementById('detailPanel').innerHTML = `
+      <strong>节点下钻</strong>
+      <div style="margin-top: 8px;">
+        <div style="font-weight: 500;">${node.name}</div>
+        <div style="margin-top: 4px; color: #555;">aggregate_key: ${node.aggregate_key || '—'}</div>
+        <div style="margin-top: 2px; color: #555;">耗时: ${node.latency_ms ? (node.latency_ms / 1000).toFixed(2) + 's' : '—'}</div>
+        <div style="margin-top: 2px; color: #555;">Tokens: ${node.tokens ?? '—'}</div>
+        <div style="margin-top: 2px; color: #555;">类型: ${node.node_type || '—'}</div>
+        <div style="margin-top: 8px; padding: 6px 8px; background: ${c.bg}; border-radius: 4px; border: 1px solid ${c.border};">
+          <span style="font-weight: 500; color: ${c.tag};">${c.label}</span>
+          <span style="color: #888; margin-left: 6px;">${c.role}</span>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function findNode(tree, id) {
+  for (const n of tree) {
+    if (n.id === id) return n;
+    if (n.children) {
+      const found = findNode(n.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function renderLegend() {
+  const members = ['leader', 'alice', 'bob', 'carol'];
+  const items = members.map(m => {
+    const c = MEMBER_COLORS[m];
+    return `<div class="legend-item"><div class="legend-dot" style="background:${c.bg}; border:1px solid ${c.border}"></div>${c.label} (${c.role})</div>`;
+  }).join('');
+  document.getElementById('legend').innerHTML = items;
+}
+
+function renderRosterDiff() {
+  const leftMap = {};
+  ROSTER_LEFT.forEach(r => leftMap[r.member_name] = r.role);
+  const rightMap = {};
+  ROSTER_RIGHT.forEach(r => rightMap[r.member_name] = r.role);
+  const allNames = [...new Set([...Object.keys(leftMap), ...Object.keys(rightMap)])].sort();
+
+  function rowClass(name) {
+    const inL = name in leftMap, inR = name in rightMap;
+    if (inL && !inR) return 'roster-row-removed';
+    if (!inL && inR) return 'roster-row-added';
+    if (leftMap[name] !== rightMap[name]) return 'roster-row-changed';
+    return '';
+  }
+  function badge(name) {
+    const inL = name in leftMap, inR = name in rightMap;
+    if (inL && !inR) return '<span class="roster-badge badge-removed">仅左</span>';
+    if (!inL && inR) return '<span class="roster-badge badge-added">仅右</span>';
+    if (leftMap[name] !== rightMap[name]) return '<span class="roster-badge badge-changed">角色变更</span>';
+    return '';
+  }
+
+  const leftRows = allNames.map(n => `<tr class="${rowClass(n)}"><td>${n}${badge(n)}</td><td>${leftMap[n] || '—'}</td></tr>`).join('');
+  const rightRows = allNames.map(n => `<tr class="${rowClass(n)}"><td>${n}${badge(n)}</td><td>${rightMap[n] || '—'}</td></tr>`).join('');
+
+  document.getElementById('rosterDiff').innerHTML = `
+    <div class="roster-col">
+      <h3>Left: agent_swarm v2 (${ROSTER_LEFT.length} members)</h3>
+      <table class="roster-table">
+        <tr><th>Member</th><th>Role</th></tr>
+        ${leftRows}
+      </table>
+    </div>
+    <div class="roster-col">
+      <h3>Right: agent_swarm v1 (${ROSTER_RIGHT.length} members)</h3>
+      <table class="roster-table">
+        <tr><th>Member</th><th>Role</th></tr>
+        ${rightRows}
+      </table>
+    </div>
+  `;
+}
+
+function renderMemberAgg() {
+  const members = Object.keys(MEMBER_AGG).sort();
+  let html = '';
+  for (const member of members) {
+    const c = MEMBER_COLORS[member] || MEMBER_COLORS['_overall'];
+    const rows = MEMBER_AGG[member];
+    const rowHtml = rows.map(r => {
+      const countDelta = r.left.count - r.right.count;
+      const latDelta = r.left.latency_ms_sum - r.right.latency_ms_sum;
+      const tokDelta = r.left.tokens_sum - r.right.tokens_sum;
+      const countCls = countDelta > 0 ? 'agg-delta-up' : countDelta < 0 ? 'agg-delta-down' : 'agg-delta-same';
+      const latCls = latDelta < 0 ? 'agg-delta-up' : latDelta > 0 ? 'agg-delta-down' : 'agg-delta-same';
+      const tokCls = tokDelta < 0 ? 'agg-delta-up' : tokDelta > 0 ? 'agg-delta-down' : 'agg-delta-same';
+      return `<tr>
+        <td>${r.aggregate_key}</td>
+        <td>${r.left.count}</td>
+        <td>${r.right.count}</td>
+        <td class="${countCls}">${countDelta > 0 ? '+' : ''}${countDelta}</td>
+        <td>${r.left.latency_ms_sum}ms</td>
+        <td>${r.right.latency_ms_sum}ms</td>
+        <td class="${latCls}">${latDelta > 0 ? '+' : ''}${latDelta}ms</td>
+        <td>${r.left.tokens_sum}</td>
+        <td>${r.right.tokens_sum}</td>
+        <td class="${tokCls}">${tokDelta > 0 ? '+' : ''}${tokDelta}</td>
+      </tr>`;
+    }).join('');
+
+    html += `
+      <div class="member-agg-section">
+        <div class="member-agg-header" style="background:${c.bg}; color:${c.tag}; border:1px solid ${c.border};">
+          ${c.label} <span style="font-weight:400; font-size:11px; color:#888; margin-left:4px;">${c.role}</span>
+        </div>
+        <table class="agg-table">
+          <tr><th>aggregate_key</th><th>L count</th><th>R count</th><th>delta</th><th>L latency</th><th>R latency</th><th>delta</th><th>L tokens</th><th>R tokens</th><th>delta</th></tr>
+          ${rowHtml}
+        </table>
+      </div>
+    `;
+  }
+  document.getElementById('memberAgg').innerHTML = html;
+}
+
+function renderMemberTopo() {
+  const members = Object.keys(MEMBER_TOPO).sort();
+  let html = '';
+  for (const member of members) {
+    const c = MEMBER_COLORS[member] || MEMBER_COLORS['_overall'];
+    const t = MEMBER_TOPO[member];
+    const status = t.same ? '<span style="color:#2e7d32">拓扑一致</span>' : `<span style="color:#c62828">拓扑差异 (仅左 ${t.only_left}, 仅右 ${t.only_right})</span>`;
+    html += `
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px; font-size:12px;">
+        <div style="padding:4px 10px; border-radius:4px; background:${c.bg}; color:${c.tag}; border:1px solid ${c.border}; font-weight:500; min-width:60px; text-align:center;">${c.label}</div>
+        <div>Left: ${t.left_edges} edges</div>
+        <div>Right: ${t.right_edges} edges</div>
+        <div>${status}</div>
+      </div>
+    `;
+  }
+  document.getElementById('memberTopo').innerHTML = html;
+}
+
+function renderLift() {
+  const d = LIFT_DATA;
+  const cards = [
+    {
+      title: 'Outcome Lift', value: d.outcome.avg_lift_pct, unit: '%',
+      sub: '评测分数提升（higher is better）',
+      detail: d.outcome.by_metric.map(m => `<div>${m.metric}: ${m.left} → ${m.right} (<span style="color:${m.lift_pct > 0 ? '#2e7d32' : '#c62828'}">${m.lift_pct > 0 ? '+' : ''}${m.lift_pct}%</span>)</div>`).join(''),
+    },
+    {
+      title: 'Cost Lift', value: d.cost.cost_lift_pct, unit: '%',
+      sub: 'Token 成本节省率（lower is better）',
+      detail: `<div>${d.cost.left_tokens} → ${d.cost.right_tokens} tok (节省 ${d.cost.token_delta})</div>`,
+    },
+    {
+      title: 'Latency Lift', value: d.latency.latency_lift_pct, unit: '%',
+      sub: '延迟节省率（lower is better）',
+      detail: `<div>${(d.latency.left_latency_ms/1000).toFixed(1)}s → ${(d.latency.right_latency_ms/1000).toFixed(1)}s (快 ${d.latency.latency_delta_ms}ms)</div>`,
+    },
+    {
+      title: 'Member Count', value: d.member.delta, unit: '',
+      sub: '工作流成员数 - 单 Agent 成员数',
+      detail: `<div>Workflow: ${d.member.left} members</div><div>Baseline: ${d.member.right} members</div>`,
+    },
+  ];
+
+  document.getElementById('liftCards').innerHTML = cards.map(c => {
+    const v = c.value;
+    const cls = v > 5 ? 'positive' : v < -5 ? 'negative' : 'neutral';
+    return `
+      <div class="lift-card">
+        <h3>${c.title}</h3>
+        <div class="lift-value ${cls}">${v > 0 ? '+' : ''}${v}${c.unit}</div>
+        <div class="lift-sub">${c.sub}</div>
+        <div class="lift-detail">${c.detail}</div>
+      </div>
+    `;
+  }).join('');
+
+  const conclMap = {
+    'workflow_lift': { cls: 'conclusion-lift', text: '工作流整体提升 +23.0% — 协作模式优于单 Agent 基线' },
+    'workflow_regression': { cls: 'conclusion-regression', text: '工作流退化 — 协作模式不如单 Agent 基线' },
+    'neutral': { cls: 'conclusion-neutral', text: '持平 — 工作流与单 Agent 无显著差异' },
+  };
+  const c = conclMap[d.conclusion] || conclMap['neutral'];
+  document.getElementById('liftConclusion').innerHTML = `<div class="lift-conclusion ${c.cls}">${c.text}</div>`;
+
+  document.getElementById('liftDetail').innerHTML = `
+    <div style="padding: 12px; background: #f9f9f9; border-radius: 6px; font-size: 12px;">
+      <strong>improvement_percentage</strong> = avg(outcome_lift, cost_lift, latency_lift) = avg(${d.outcome.avg_lift_pct}%, ${d.cost.cost_lift_pct}%, ${d.latency.latency_lift_pct}%) = <strong>${d.improvement_percentage}%</strong>
+      <div style="margin-top: 8px; color: #888;">conclusion: <code>${d.conclusion}</code> (improvement > 5% → workflow_lift, < -5% → workflow_regression, else neutral)</div>
+    </div>
+  `;
+}
+
+// ========== Tab Switching ==========
+function switchTab(evt, tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  evt.target.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+// ========== Init ==========
+renderLegend();
+document.getElementById('spanTree').innerHTML = SPAN_TREE.map(n => renderSpanNode(n, 0)).join('');
+renderRosterDiff();
+renderMemberAgg();
+renderMemberTopo();
+renderLift();
+</script>
+
+</body>
+</html>

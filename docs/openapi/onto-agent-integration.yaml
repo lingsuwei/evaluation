@@ -1,0 +1,1252 @@
+openapi: 3.0.3
+info:
+  title: onto-eval Agent Integration API
+  description: |
+    onto-agent 与 onto-eval 联调契约（OpenAPI 3.0）。
+
+    **范围**：事实摄入 Push、Run 对比验证；onto-agent ST-3 场景步骤注册表与联调探针。
+
+    **v1.2**：已移除 Re-run / replay-bundle 相关路径（产品取消，见架构设计说明书 v1.15）。
+
+    **v1.3**：摄入 Push 无需 Token（见架构设计说明书 v1.16）。
+
+    **v1.4**：新增 onto-agent `/agentic/*` 场景步骤 API（见 [onto-agent-评测观测适配方案-v2.md](../onto-agent-评测观测适配方案-v2.md) §4.1）。
+
+    人类可读说明见 [onto-agent-最小改动清单.md](../onto-agent-最小改动清单.md)。
+
+    **路径说明**：
+    - onto-eval：同时挂载 `/api/*` 与无前缀路由；agent Push 推荐 `/api/trace/ingest/push`。
+    - onto-agent：`/agentic/*` 在 agent 根路径（默认 `:5055`），与 eval 前缀无关。
+  version: 1.4.0
+  contact:
+    name: onto-eval
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://{host}/api
+    description: 生产 / 联调（推荐）
+    variables:
+      host:
+        default: onto-eval.example.com
+        description: onto-eval API 主机
+  - url: http://127.0.0.1:8000/api
+    description: onto-eval 本地开发
+  - url: https://{agent_host}
+    description: onto-agent 生产 / 联调（/agentic/*）
+    variables:
+      agent_host:
+        default: onto-agent.example.com
+        description: onto-agent API 主机（无 /api 前缀）
+  - url: http://127.0.0.1:5055
+    description: onto-agent 本地开发
+
+tags:
+  - name: FactIngest
+    description: 事实摄入（ADR-027）；推理结束后 Push trace，无需 Token
+  - name: Runs
+    description: Run 过程点、Span 树（只读联调）
+  - name: Comparisons
+    description: Run 对比；outcome / semantic / structural diff
+  - name: Experiments
+    description: 任务级版本实验；默认附带 semantic + structural diff（P5-E+）
+  - name: ScenarioSteps
+    description: onto-agent ST-3 场景步骤注册表（Skill / 本体）
+  - name: Observability
+    description: onto-agent 联调探针与步骤 ID 覆盖度
+
+paths:
+  /trace/ingest/push:
+    post:
+      operationId: ingestTracePush
+      tags: [FactIngest]
+      summary: onto-agent 推送 trace 物化事实层
+      description: |
+        推理完成且 Langfuse `flush()` 之后异步调用。
+
+        - 无需 Token 或签名校验。
+        - 强烈建议同时传 `agent_run_id` 与完整 `trace`（Push 默认不从 Langfuse 补拉）。
+        - 无匹配 Run 时返回 `status=accepted`，需对账 `agent_run_id`。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraceIngestPushRequest'
+            examples:
+              minimal:
+                summary: 最小（仅 ID，需 eval 侧已有 Run）
+                value:
+                  agent_run_id: run_a1b2c3d4e5f6
+                  trace_id: trace_langfuse_uuid
+              recommended:
+                summary: 推荐（完整 trace + agent 属性）
+                value:
+                  agent_run_id: run_a1b2c3d4e5f6
+                  trace_id: trace_push_1
+                  langfuse_project: my-project
+                  trace:
+                    id: trace_push_1
+                    name: eval-run
+                    observations:
+                      - id: obs_root
+                        name: agent_run
+                        type: SPAN
+                        metadata:
+                          agent.step.id: root
+                          agent.step.kind: router
+                          agent.logical_agent_id: onto-agent-prod
+                          agent.version: "1.2.0"
+                      - id: obs_tool_1
+                        name: search_kb
+                        type: SPAN
+                        parentObservationId: obs_root
+                        metadata:
+                          agent.step.id: retrieve
+                          agent.step.kind: tool
+                          agent.tool.name: kb_search
+                          agent.is_deterministic_io: true
+                          agent.mock_response_payload:
+                            hits:
+                              - doc_id: d1
+                                score: 0.92
+                            total: 1
+                        input:
+                          query: example
+                        output:
+                          hits: 3
+                      - id: obs_gen_1
+                        name: answer
+                        type: GENERATION
+                        parentObservationId: obs_root
+                        metadata:
+                          agent.step.id: answer
+                          agent.step.kind: llm
+                        usage:
+                          total: 128
+      responses:
+        '200':
+          description: 摄入成功或已接受待对账
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceIngestPushResponse'
+              examples:
+                synced:
+                  value:
+                    status: synced
+                    agent_run_id: run_a1b2c3d4e5f6
+                    trace_id: trace_push_1
+                    facts:
+                      span_count: 3
+                      tokens_total: 128
+                accepted:
+                  value:
+                    status: accepted
+                    agent_run_id: null
+                    trace_id: trace_unknown
+                    reason: no_matching_run
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /runs/{run_id}/checkpoints:
+    get:
+      operationId: getRunCheckpoints
+      tags: [Runs]
+      summary: 单 Run 过程点合规明细（按模板 order 排序）
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: 过程点合规报告
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunCheckpointReport'
+        '404':
+          $ref: '#/components/responses/RunNotFound'
+
+  /comparisons/compare:
+    post:
+      operationId: compareRuns
+      tags: [Comparisons]
+      summary: 对比两 Run
+      description: |
+        **默认 `diff_types`（省略时）**：P3 四类 — `outcome_diff`、`cost_diff`、`checkpoint_diff`、`event_agg_diff`。
+
+        `semantic_diff` / `structural_diff` 为 **opt-in**（需显式传入 `diff_types`）。
+
+        版本实验默认 diff 集见 `POST /experiments/{experiment_id}/run`（含 semantic + structural）。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareRunsRequest'
+            examples:
+              semanticStructural:
+                summary: 语义 + 结构对比
+                value:
+                  left_run_id: run_left
+                  right_run_id: run_right
+                  comparison_scope: manual
+                  diff_types:
+                    - outcome_diff
+                    - semantic_diff
+                    - structural_diff
+              defaultDiffs:
+                summary: 默认四类 diff
+                value:
+                  left_run_id: run_left
+                  right_run_id: run_right
+      responses:
+        '200':
+          description: 对比会话与 diff 列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonDetail'
+        '400':
+          description: 参数错误或 unknown diff_type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /experiments/task/{task_id}:
+    post:
+      operationId: createExperimentForTask
+      tags: [Experiments]
+      summary: 创建或获取任务级版本实验
+      description: 同 task_id 幂等；用于任务详情「运行版本对比」前置步骤。
+      security: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExperimentRequest'
+            example:
+              name: 任务 task_5182 版本实验
+              baseline_agent_id: ag_v1
+      responses:
+        '200':
+          description: 实验详情（新建或已存在）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+    get:
+      operationId: getExperimentForTask
+      tags: [Experiments]
+      summary: 按任务 ID 获取版本实验
+      security: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 实验详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+        '404':
+          description: 该任务尚无实验
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /experiments/{experiment_id}:
+    get:
+      operationId: getExperimentById
+      tags: [Experiments]
+      summary: 按实验 ID 获取详情
+      security: []
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 实验详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+        '404':
+          description: 实验不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /experiments/{experiment_id}/run:
+    post:
+      operationId: runVersionExperiment
+      tags: [Experiments]
+      summary: 执行任务级版本对比实验
+      description: |
+        对同任务下 baseline Agent 与各 challenger Agent 的 Run 逐题配对对比。
+
+        **默认 diff_types（省略 body.diff_types 时）**：
+        P3 四类 + semantic_diff + structural_diff（VERSION_EXPERIMENT_DIFF_TYPES）。
+
+        前端任务详情「运行版本对比」传空 body `{}` 即使用上述默认集；
+        summaries[].highlights 会包含 semantic / structural 紧凑摘要。
+
+        显式传入 diff_types 时仅运行指定类型（须为已注册 Calculator）。
+      security: []
+      parameters:
+        - name: experiment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunExperimentRequest'
+            examples:
+              defaultDiffs:
+                summary: 默认（P3 四类 + semantic + structural）
+                value: {}
+              customDiffs:
+                summary: 仅 outcome + semantic
+                value:
+                  diff_types:
+                    - outcome_diff
+                    - semantic_diff
+      responses:
+        '200':
+          description: 实验完成；含 summaries 与 outcome_wins 统计
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentDetail'
+        '400':
+          description: 无可用 Run 对、unknown diff_type 等
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 实验不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /runs/{run_id}/span-tree:
+    get:
+      operationId: getRunSpanTree
+      tags: [Runs]
+      summary: 读取 Run Span 树（可选，联调 aggregate_key）
+      description: 只读；用于验证 AG-01 属性物化与 `aggregate_key` 是否符合预期。
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Span 树
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpanTreeResponse'
+        '404':
+          $ref: '#/components/responses/RunNotFound'
+
+  /agentic/skills/{skill_name}/scenario-steps:
+    get:
+      operationId: getSkillScenarioSteps
+      tags: [ScenarioSteps]
+      summary: 查询 Skill 场景步骤注册表
+      description: |
+        onto-agent ST-3：读取 Skill 目录下 `scenario_steps.yaml` 解析结果。
+        eval / 运维用于配置 `trace_binding.agent_step_id` 或导入子步骤草稿。
+      servers:
+        - url: http://127.0.0.1:5055
+        - url: https://{agent_host}
+          variables:
+            agent_host:
+              default: onto-agent.example.com
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SkillName'
+        - $ref: '#/components/parameters/WorkspaceId'
+        - name: ontology_id
+          in: query
+          required: false
+          description: 若 Skill 绑定本体，可过滤
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 注册表内容
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioStepsRegistry'
+              example:
+                skill_name: aviation-plm-knowledge-agent
+                workspace_id: eco
+                registry_id: aviation-plm-knowledge-agent
+                registry_version: "1.0.0"
+                schema_version: "1.0"
+                source_path: .onto-runtime/workspaces/eco/skills/aviation-plm-knowledge-agent/scenario_steps.yaml
+                loaded_at: "2026-06-04T12:00:00Z"
+                steps:
+                  - id: eco.query_affected_objects
+                    label: 查询 ECO 受影响对象
+                    kind: tool
+                    match:
+                      tool_name: business_data_search
+                      input:
+                        entity: ECO受影响对象
+        '404':
+          description: Skill 不存在或无注册表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agentic/ontologies/{ontology_id}/scenario-steps:
+    get:
+      operationId: getOntologyScenarioSteps
+      tags: [ScenarioSteps]
+      summary: 按本体查询场景步骤注册表
+      description: |
+        onto-agent ST-3：读取本体目录下 `scenario_steps.yaml`。
+        Response 结构与 Skill 接口一致；`skill_name` 可为关联 Skill 名或 null。
+      servers:
+        - url: http://127.0.0.1:5055
+        - url: https://{agent_host}
+          variables:
+            agent_host:
+              default: onto-agent.example.com
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OntologyId'
+        - $ref: '#/components/parameters/WorkspaceId'
+      responses:
+        '200':
+          description: 注册表内容
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioStepsRegistry'
+        '404':
+          description: 本体不存在或无注册表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agentic/scenario-steps/validate:
+    post:
+      operationId: validateScenarioStepsRegistry
+      tags: [ScenarioSteps]
+      summary: 校验场景步骤注册表（CI / Skill 上传）
+      description: |
+        校验 `scenario_steps.yaml` 语法与 match 冲突。
+        校验失败时 HTTP 仍为 200，`valid=false` 且 `errors` 非空。
+      servers:
+        - url: http://127.0.0.1:5055
+        - url: https://{agent_host}
+          variables:
+            agent_host:
+              default: onto-agent.example.com
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioStepsValidateRequest'
+            example:
+              workspace_id: eco
+              registry_yaml: |
+                registry_id: eco
+                steps:
+                  - id: eco.query_affected_objects
+                    kind: tool
+                    match:
+                      tool_name: business_data_search
+      responses:
+        '200':
+          description: 校验结果（含 valid=false 的情况）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioStepsValidateResponse'
+              examples:
+                valid:
+                  value:
+                    valid: true
+                    registry_id: eco
+                    step_count: 6
+                    warnings: []
+                invalid:
+                  value:
+                    valid: false
+                    errors:
+                      - path: steps[2].id
+                        message: "duplicate step id: eco.query_affected_objects"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /agentic/observability/runs/{run_id}/step-id-report:
+    get:
+      operationId: getRunStepIdReport
+      tags: [Observability]
+      summary: 联调探针 — Run 步骤 ID 覆盖度
+      description: |
+        统计指定 agentic run 的 Langfuse observation 中 `agent.step.id` 覆盖情况。
+        门禁建议：`registry_sourced / max(tool+llm_observations, 1) ≥ 0.8`。
+      servers:
+        - url: http://127.0.0.1:5055
+        - url: https://{agent_host}
+          variables:
+            agent_host:
+              default: onto-agent.example.com
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AgenticRunId'
+        - $ref: '#/components/parameters/WorkspaceId'
+      responses:
+        '200':
+          description: 覆盖度报告
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepIdReport'
+              example:
+                run_id: agentic-1780543576587-dcbd071a022ba8
+                trace_id: 7e76a9b8328c55fc9db10d4581dd82a5
+                observation_count: 12
+                with_agent_step_id: 10
+                registry_sourced: 8
+                structural_fallback: 2
+                step_ids:
+                  - agent_step_id: eco.query_affected_objects
+                    agent_step.id_source: registry
+                    observation_name: tool:business_data_search
+                    tool_call_index: 1
+                    iteration: 3
+                registry_coverage:
+                  expected_from_registry: 6
+                  hit: 5
+                  missing:
+                    - eco.load_object_schema
+        '404':
+          description: Run 不存在或无法解析 trace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: onto-agent 用户 Token（与现有 /agentic/* 一致）
+
+  parameters:
+    RunId:
+      name: run_id
+      in: path
+      required: true
+      description: AgentRun ID
+      schema:
+        type: string
+        example: run_a1b2c3d4e5f6
+
+    AgenticRunId:
+      name: run_id
+      in: path
+      required: true
+      description: onto-agent agentic run ID
+      schema:
+        type: string
+        example: agentic-1780543576587-dcbd071a022ba8
+
+    WorkspaceId:
+      name: workspace_id
+      in: query
+      required: true
+      description: 工作空间 ID
+      schema:
+        type: string
+        example: eco
+
+    SkillName:
+      name: skill_name
+      in: path
+      required: true
+      description: Skill 名称
+      schema:
+        type: string
+        example: aviation-plm-knowledge-agent
+
+    OntologyId:
+      name: ontology_id
+      in: path
+      required: true
+      description: 本体 ID
+      schema:
+        type: string
+        example: aviation-plm-knowledge-agent
+
+  responses:
+    BadRequest:
+      description: 请求体无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RunNotFound:
+      description: Run 不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            detail: run not found
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string
+
+    TraceIngestPushRequest:
+      type: object
+      description: onto-agent Push 载荷
+      properties:
+        agent_run_id:
+          type: string
+          description: eval 在线评测 stub 的 Run ID（强烈建议）
+          example: run_a1b2c3d4e5f6
+        trace_id:
+          type: string
+          description: Langfuse trace ID，与 AgentRun.trace_id 一致
+          example: trace_push_1
+        langfuse_project:
+          type: string
+          description: 可选；多项目时指定
+        trace:
+          $ref: '#/components/schemas/LangfuseTrace'
+      anyOf:
+        - required: [trace_id]
+        - required: [trace]
+
+    TraceIngestPushResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [synced, accepted]
+          description: synced=已物化；accepted=无匹配 Run 待对账
+        agent_run_id:
+          type: string
+          nullable: true
+        trace_id:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          description: status=accepted 时的原因
+          example: no_matching_run
+        facts:
+          type: object
+          description: Builder 物化摘要（字段随版本扩展）
+          additionalProperties: true
+          properties:
+            span_count:
+              type: integer
+            tokens_total:
+              type: integer
+
+    LangfuseTrace:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        observations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LangfuseObservation'
+
+    LangfuseObservation:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: 展示名；非平台契约，可随 refactor 变化
+        type:
+          type: string
+          description: SPAN / GENERATION / EVENT 等
+          example: SPAN
+        parentObservationId:
+          type: string
+          description: 父 observation ID（建 Span 树）
+        metadata:
+          $ref: '#/components/schemas/AgentObservationMetadata'
+        input:
+          description: 步骤输入（任意 JSON）
+        output:
+          description: 步骤输出（任意 JSON）
+        usage:
+          type: object
+          properties:
+            total:
+              type: integer
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    AgentObservationMetadata:
+      type: object
+      description: |
+        写入 Langfuse observation.metadata；eval Builder 归一化为 agent.* attributes。
+        详见 onto-agent-observability.md。
+      properties:
+        agent.step.id:
+          type: string
+          description: 跨版本稳定步骤 ID
+          example: retrieve
+        agent.step.kind:
+          type: string
+          enum: [tool, llm, router]
+        agent.tool.name:
+          type: string
+          example: kb_search
+        agent.logical_agent_id:
+          type: string
+        agent.version:
+          type: string
+        agent.is_retry:
+          type: boolean
+        agent.is_deterministic_io:
+          type: boolean
+          description: L1 mock 标记（Builder 映射待 eval 侧补全）
+        agent.mock_response_payload:
+          type: object
+          description: L1 可注入的确定性输出 JSON
+          additionalProperties: true
+      additionalProperties: true
+
+    RunCheckpointItem:
+      type: object
+      properties:
+        checkpoint_id:
+          type: string
+        name:
+          type: string
+        order:
+          type: integer
+          nullable: true
+        required:
+          type: boolean
+          nullable: true
+        passed:
+          type: boolean
+        hit:
+          type: boolean
+          nullable: true
+        order_ok:
+          type: boolean
+          nullable: true
+        evidence:
+          type: object
+          additionalProperties: true
+
+    RunCheckpointReport:
+      type: object
+      properties:
+        agent_run_id:
+          type: string
+        question_id:
+          type: integer
+          nullable: true
+        checkpoint_total:
+          type: integer
+        checkpoint_passed:
+          type: integer
+        compliance_rate:
+          type: number
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunCheckpointItem'
+
+    DiffType:
+      type: string
+      enum:
+        - outcome_diff
+        - cost_diff
+        - checkpoint_diff
+        - event_agg_diff
+        - semantic_diff
+        - structural_diff
+        - metric_diff
+      description: |
+        **Compare 默认**（`POST /comparisons/compare` 省略 diff_types）：前四项 P3 diff。
+
+        **版本实验默认**（`POST /experiments/{id}/run` 省略 diff_types）：
+        前四项 + semantic_diff + structural_diff。
+
+        手动 Compare 若需 semantic / structural，须显式传入 diff_types。
+
+    CompareRunsRequest:
+      type: object
+      required: [left_run_id, right_run_id]
+      properties:
+        left_run_id:
+          type: string
+        right_run_id:
+          type: string
+        comparison_scope:
+          type: string
+          default: manual
+        diff_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiffType'
+        meta:
+          type: object
+          additionalProperties: true
+
+    RunDiffItem:
+      type: object
+      properties:
+        id:
+          type: string
+        diff_type:
+          $ref: '#/components/schemas/DiffType'
+        schema_version:
+          type: string
+          example: "1.0"
+        left_run_id:
+          type: string
+        right_run_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ComparisonDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cmp_abc123
+        comparison_scope:
+          type: string
+        task_id:
+          type: string
+          nullable: true
+        question_id:
+          type: integer
+          nullable: true
+        run_index:
+          type: integer
+          nullable: true
+        left_run_id:
+          type: string
+        right_run_id:
+          type: string
+        meta:
+          type: object
+          nullable: true
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        diffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunDiffItem'
+
+    CreateExperimentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: 实验显示名
+        baseline_agent_id:
+          type: string
+          nullable: true
+          description: 基准 Agent；省略时由任务 Run 自动选取
+
+    RunExperimentRequest:
+      type: object
+      properties:
+        diff_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiffType'
+          description: |
+            省略时使用 VERSION_EXPERIMENT_DIFF_TYPES：
+            outcome_diff, cost_diff, checkpoint_diff, event_agg_diff,
+            semantic_diff, structural_diff
+
+    ExperimentSummaryHighlights:
+      type: object
+      description: 单题对比摘要（来自 RunDiff 紧凑化）
+      properties:
+        comparison_id:
+          type: string
+        outcome:
+          type: object
+          additionalProperties: true
+        cost:
+          type: object
+          additionalProperties: true
+        semantic:
+          type: object
+          description: semantic_diff 紧凑摘要
+          properties:
+            summary_mismatch_count:
+              type: integer
+            role_mismatch_count:
+              type: integer
+            judge_summary:
+              type: string
+              nullable: true
+          additionalProperties: true
+        structural:
+          type: object
+          description: structural_diff 紧凑摘要
+          properties:
+            same_topology:
+              type: boolean
+            only_left_count:
+              type: integer
+            only_right_count:
+              type: integer
+            summary:
+              type: string
+          additionalProperties: true
+        structural_count:
+          type: integer
+          description: event_agg 事件数（兼容字段）
+
+    ExperimentSummaryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        question_id:
+          type: integer
+        comparison_id:
+          type: string
+        left_agent_id:
+          type: string
+        right_agent_id:
+          type: string
+        left_run_id:
+          type: string
+        right_run_id:
+          type: string
+        outcome_winner:
+          type: string
+          enum: [left, right, tie, unknown]
+        highlights:
+          $ref: '#/components/schemas/ExperimentSummaryHighlights'
+
+    ExperimentDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        task_id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        baseline_agent_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          example: completed
+        comparison_scope:
+          type: string
+          example: version_experiment
+        meta:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        outcome_wins:
+          type: object
+          properties:
+            left:
+              type: integer
+            right:
+              type: integer
+            tie:
+              type: integer
+            unknown:
+              type: integer
+          additionalProperties: true
+        summaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExperimentSummaryItem'
+
+    SpanTreeNode:
+      type: object
+      properties:
+        id:
+          type: string
+        observation_id:
+          type: string
+          nullable: true
+        parent_id:
+          type: string
+          nullable: true
+        name:
+          type: string
+        node_type:
+          type: string
+          nullable: true
+        aggregate_key:
+          type: string
+        semantic_role:
+          type: string
+          nullable: true
+        agent_step_id:
+          type: string
+          nullable: true
+        depth:
+          type: integer
+        step_index:
+          type: integer
+        sibling_order:
+          type: integer
+        latency_ms:
+          type: integer
+          nullable: true
+        tokens:
+          type: integer
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanTreeNode'
+
+    SpanTreeResponse:
+      type: object
+      properties:
+        agent_run_id:
+          type: string
+        trace_id:
+          type: string
+          nullable: true
+        agent_id:
+          type: string
+          nullable: true
+        task_id:
+          type: string
+          nullable: true
+        question_id:
+          type: integer
+          nullable: true
+        node_count:
+          type: integer
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanTreeNode'
+        tree:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanTreeNode'
+
+    ScenarioStepDef:
+      type: object
+      required: [id, kind, match]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9._-]{3,64}$'
+          description: 跨版本稳定业务步骤 ID
+          example: eco.query_affected_objects
+        label:
+          type: string
+          example: 查询 ECO 受影响对象
+        kind:
+          type: string
+          enum: [tool, llm, router]
+        match:
+          type: object
+          description: 运行时 match 条件（tool_name、input、phase 等）
+          additionalProperties: true
+
+    ScenarioStepsRegistry:
+      type: object
+      required: [registry_id, registry_version, steps]
+      properties:
+        skill_name:
+          type: string
+          nullable: true
+          description: Skill 名；本体接口可为 null
+        workspace_id:
+          type: string
+        registry_id:
+          type: string
+        registry_version:
+          type: string
+        schema_version:
+          type: string
+          enum: ['1.0']
+        source_path:
+          type: string
+          description: 注册表文件相对路径
+        loaded_at:
+          type: string
+          format: date-time
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioStepDef'
+
+    ScenarioStepsValidateRequest:
+      type: object
+      required: [workspace_id, registry_yaml]
+      properties:
+        workspace_id:
+          type: string
+          example: eco
+        registry_yaml:
+          type: string
+          description: scenario_steps.yaml 原始文本
+
+    ScenarioStepsValidationError:
+      type: object
+      required: [path, message]
+      properties:
+        path:
+          type: string
+          example: steps[2].id
+        message:
+          type: string
+
+    ScenarioStepsValidateResponse:
+      type: object
+      required: [valid]
+      properties:
+        valid:
+          type: boolean
+        registry_id:
+          type: string
+        step_count:
+          type: integer
+        warnings:
+          type: array
+          items:
+            type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScenarioStepsValidationError'
+
+    StepIdReportItem:
+      type: object
+      properties:
+        agent_step_id:
+          type: string
+        agent_step.id_source:
+          type: string
+          enum: [registry, structural_fallback]
+        observation_name:
+          type: string
+        tool_call_index:
+          type: integer
+        iteration:
+          type: integer
+
+    RegistryCoverage:
+      type: object
+      properties:
+        expected_from_registry:
+          type: integer
+        hit:
+          type: integer
+        missing:
+          type: array
+          items:
+            type: string
+
+    StepIdReport:
+      type: object
+      required: [run_id, observation_count]
+      properties:
+        run_id:
+          type: string
+        trace_id:
+          type: string
+        observation_count:
+          type: integer
+        with_agent_step_id:
+          type: integer
+        registry_sourced:
+          type: integer
+        structural_fallback:
+          type: integer
+        step_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepIdReportItem'
+        registry_coverage:
+          $ref: '#/components/schemas/RegistryCoverage'

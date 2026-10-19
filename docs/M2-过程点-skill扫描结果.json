@@ -1,0 +1,106 @@
+{
+  "runtime_root": "/mnt/d/work/全链路工具优化/soft/0520/onto-agent/.onto-runtime",
+  "skill_count": 0,
+  "skills": [],
+  "templates": [
+    {
+      "agent_name": "onto-agent",
+      "name": "Run 已启动",
+      "order": 1,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          {
+            "type": "observation_name",
+            "op": "contains",
+            "value": "agent_request:"
+          }
+        ]
+      }
+    },
+    {
+      "agent_name": "onto-agent",
+      "name": "主 Agent 循环",
+      "order": 2,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          {
+            "type": "observation_name",
+            "op": "eq",
+            "value": "agent_loop:main"
+          }
+        ]
+      }
+    },
+    {
+      "agent_name": "onto-agent",
+      "name": "LLM 推理轮次",
+      "order": 3,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          {
+            "type": "observation_name",
+            "op": "contains",
+            "value": "llm:main_iteration"
+          }
+        ]
+      }
+    },
+    {
+      "agent_name": "onto-agent",
+      "name": "发生过工具调用",
+      "order": 4,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          {
+            "type": "observation_name",
+            "op": "contains",
+            "value": "tool:"
+          }
+        ]
+      }
+    },
+    {
+      "agent_name": "onto-agent",
+      "name": "本体上下文加载",
+      "order": 5,
+      "required": true,
+      "score_weight": 1.0,
+      "match_mode": "rule",
+      "enabled": true,
+      "match_rules": {
+        "mode": "any",
+        "rules": [
+          {
+            "type": "observation_name",
+            "op": "eq",
+            "value": "tool:ontology_context"
+          }
+        ]
+      }
+    }
+  ],
+  "notes": [
+    "skill 级过程点当前仅能匹配 tool:skill，不能区分 skill_name",
+    "精确按 skill 名匹配需 onto-agent LangfuseExporter 写入 metadata.skill_name"
+  ]
+}
